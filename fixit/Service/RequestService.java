@@ -5,6 +5,7 @@ import com.example.fixit.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,19 +90,25 @@ public class RequestService {
 
     //8 Scheduled Order Alert (Service Alert After 1 Hour)
     public String getScheduledReminder(Integer requestId) {
-        Request request = requestRepository.getById(requestId);
-        if (request == null || request.getScheduledTime() == null) {
-            return "Request not found or not scheduled";
-        }
+        Request request = requestRepository.findById(requestId).orElse(null);
+        if (request == null) return "Request not found";
+
+        LocalDateTime scheduledTime = request.getScheduledTime();
+        if (scheduledTime == null) return "No scheduled time for this request";
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourBefore = request.getScheduledTime().minusHours(1);
 
-        if (now.isAfter(oneHourBefore) && now.isBefore(request.getScheduledTime())) {
-            return "Reminder: Your scheduled service will begin in less than 1 hour.";
-        } else {
-            return "No reminder needed at this time.";
+        if (scheduledTime.isBefore(now)) {
+            return "The request time has already passed.";
         }
+
+        long minutes = Duration.between(now, scheduledTime).toMinutes();
+
+        if (minutes <= 60) {
+            return "Reminder: Your scheduled request will start in " + minutes + " minutes.";
+        }
+
+        return "No reminder needed. The request is more than 1 hour away.";
     }
 
     //9 get most requested services
@@ -148,7 +155,7 @@ public class RequestService {
                     count++;
                 }
             }
-            if (count > 1) { // إذا طلبها المستخدم أكثر من مرة
+            if (count > 1) {
                 suggestions.add(service);
             }
         }
@@ -180,7 +187,6 @@ public class RequestService {
         request.setStatus("COMPLETED");
         requestRepository.save(request);
 
-        // تحديث حالة مقدم الخدمة
         Integer providerId = request.getProviderId();
         if (providerId != null) {
             ServiceProvider provider = providerRepository.findById(providerId).orElse(null);

@@ -27,7 +27,6 @@ public class Request {
     @Column(columnDefinition = "varchar(100) not null")
     private String description;
 
-    @NotEmpty(message = "Status must not be empty")
     @Pattern(regexp = "^(PENDING|IN_PROGRESS|COMPLETED|CANCELLED)$",
             message = "Status must be one of the following: PENDING, IN_PROGRESS, COMPLETED, CANCELLED, EMERGENCY")
     private String status;
